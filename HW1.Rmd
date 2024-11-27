@@ -1,0 +1,162 @@
+---
+title: "Homework 1"
+author: 'Yanru Fang'
+subtitle: '1/31/2023'
+output:
+  pdf_document: default
+
+---
+
+```{r setup, echo=FALSE}
+library(knitr)
+# set global chunk options: images will be 7x5 inches
+knitr::opts_chunk$set(fig.width=7, fig.height=5)
+options(digits = 4)
+
+
+## indents are for indenting r code as formatted text
+## They may need to be adjusted depending on your OS
+# if your output looks odd, increase or decrease indent
+indent1 = '    '
+indent2 = '        '
+indent3 = '            '
+```
+
+1. The dataset *trees* contains measurements of *Girth* (tree diameter) in inches, *Height* in feet, and *Volume* of timber (in cubic feet) of a sample of 31 felled black cherry trees. The following commands can be
+used to read the data into R.
+
+```{r data1}
+# the data set "trees" is contained in the R package "datasets"
+require(datasets)
+head(trees)
+```
+
+(a) (1pt) Briefly describe the data set *trees*, i.e., how many observations (rows) and how many variables (columns) are there in the data set? What are the variable names?
+```{r echo=TRUE, warning=FALSE}
+require(datasets)
+trees
+```
+```{r echo=TRUE}
+nrow(trees)
+ncol(trees)
+colnames(trees)
+```
+
+From the data we can know that there are total 31 observations and 3 variables in the data set. The names are: Girth, Height, and Volume.
+
+(b) (2pts) Use the *pairs* function to construct a scatter plot matrix of the logarithms of Girth, Height and Volume.
+```{r echo=TRUE}
+pairs(log(trees))
+```
+
+(c) (2pts) Use the *cor* function to determine the correlation matrix for the three (logged) variables.
+```{r echo=TRUE}
+cor(log(trees))
+```
+
+(d) (2pts) Are there missing values?
+```{r echo=TRUE}
+is.na(trees)
+```
+```{r echo=TRUE}
+any(is.na(trees))
+```
+There is no missing value.
+
+(e) (2pts) Use the *lm* function in R to fit the multiple regression model:
+
+$$\log (Volume_i)=\beta_0 + \beta_1\log(Girth_i)+\beta_2\log(Height_i) + \epsilon_i$$
+and print out the summary of the model fit.
+```{r echo=TRUE}
+fit <- lm(I(log(Volume)) ~ I(log(Girth)) + I(log(Height)), data = trees)
+summary(fit)
+```
+
+
+(f) (3pts) Create the design matrix (i.e., the matrix of predictor variables), $X$, for the model in (e), and verify that the least squares coefficient estimates in the summary output are given by the least squares
+formula: $\hat{\beta}=(X^TX)^{-1}X^Ty$.
+```{r echo=TRUE}
+X <- cbind(matrix(1, dim(trees)), log(trees$Girth), log(trees$Height))
+Y <- cbind(log(trees$Volume))
+beta_hat <- solve(t(X) %*% X) %*% (t(X) %*% Y)
+beta_hat
+```
+From the data we can see that the result of the least squares coefficient estimates are the same as the summary output.
+
+(g) (3pts) Compute the predicted response values from the fitted regression model, the residuals, and an estimate of the error variance $Var(\epsilon)=\sigma^2$.
+```{r echo=TRUE}
+y_hat <- fit$fitted.values
+y_hat
+```
+```{r echo=TRUE}
+a <- fit$residuals
+a
+```
+```{r echo=TRUE}
+sigma_hat <- sum((a^2)/fit$df.residual)
+sigma_hat
+```
+
+
+2. Consider the simple linear regression model:
+
+$$\qquad y_i = \beta_0+\beta_1x_i+\epsilon_i$$
+
+**Part 1: $\beta_0=0$ **
+
+(a) (3pts) Assume $\beta_0=0$. What  is the interpretation of this assumption? What is the implication on the regression line? What does the regression line plot look like?
+
+If $\beta_0 = 0$, which means the intercept will equal to zero. The regression line will pass the origin point (0,0). In the regression line plot, the best fit line will pass the (0,0).
+
+(b) (4pts) Derive the LS estimate of $\beta_1$ when $\beta_0=0$.
+
+```{r echo=TRUE}
+# Handwritten:
+```
+
+
+(c) (3pts) How can we introduce this assumption within the *lm* function?
+```{r}
+beta_0 <- lm(I(log(Volume)) ~ 0 + I(log(Girth)) + I(log(Height)), data = trees)
+beta_0
+```
+
+
+**Part 2: $\beta_1=0$**
+
+(d) (3pts) For the same model, assume $\beta_1=0$. What  is the interpretation of this assumption? What is the implication on the regression line? What does the regression line plot look like?
+
+If $\beta_1=0$, which means the y is not influenced by $x_1$ and there is no relationship between $x_1$ and y. The regression line is parallel to x-axis.
+ 
+(e) (4pts)Derive the LS estimate of $\beta_0$ when $\beta_1=0$.
+
+```{r echo=TRUE}
+# Handwritten:
+```
+
+
+(f) (3pts)How can we introduce this assumption within the *lm* function?
+```{r echo=TRUE}
+beta_1 <- lm(I(log(Volume)) ~ 1, data = trees)
+beta_1
+
+```
+
+3. Consider the simple linear regression model:
+
+$$\qquad y_i = \beta_0+\beta_1x_i+\epsilon_i$$
+
+(a) (10pts) Use the LS estimation general result $\hat{\beta}=(X^TX)^{-1}X^Ty$ to find the explicit estimates for $\beta_0$ and $\beta_1$.
+
+```{r echo=TRUE}
+# Handwritten:
+
+```
+
+(b) (5pts) Show that the LS estimates $\hat{\beta}_0$ and $\hat{\beta}_1$ are unbiased estimates for $\beta_0$ and $\beta_1$ respectively.
+
+```{r echo=TRUE}
+# Handwritten:
+```
+
+

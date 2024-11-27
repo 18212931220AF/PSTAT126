@@ -1,0 +1,128 @@
+---
+title: "Homework 3"
+author: 'Yanru Fang'
+output: pdf_document
+date: "March 10th, 2023"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+1. This question uses the *cereal* data set available in the Homework Assignment 3.
+\
+The data set *cereal* contains measurements for a set of $77$ cereal brands. For this assignment only consider the following variables:
+
+- Rating: Quality rating
+- Protein: Amount of protein. 
+- Fat: Amount of fat.
+- Fiber: Amount of fiber.
+- Carbo: Amount of carbohydrates.
+- Sugars: Amount of sugar.
+- Potass: Amount of potassium. 
+- Vitamins: Amount of vitamins.
+- Cups: Portion size in cups.
+
+Our goal is to study how *rating* is related to all other 8 variables.\
+
+(a) **(2 pts)** Run a multiple linear regression model after removing observations 5,21 and 58. Calculate the fitted response values and the residuals from the linear model mentioned above. Use *head* function to show the first 5 entries of the fitted response values and the first 5 entries of the residuals.\
+```{r echo=TRUE}
+cereal <- read.table('cereal.txt', head = T)
+str(cereal)
+new_cereal <- cereal[-c(5, 21, 58), ]
+```
+
+```{r echo=TRUE}
+model <- lm(rating ~ protein + fat + fiber + carbo + sugars + potass + vitamins + cups, 
+            data = new_cereal)
+summary(model)
+fitted <- fitted(model)
+head(fitted, 5)
+residuals <- residuals(model)
+head(residuals, 5)
+```
+
+(b) **(2 pts)** Use a graphical diagnostic approach to check if the random errors have constant variance. Briefly explain what diagnostics method you used and what is your conclusion.\
+```{r echo=TRUE}
+plot(fitted(model), residuals(model))
+abline(h = 0, col = 'red')
+```
+One way to check if the random errors have constant variance is to create a residual plot. From this plot we can see there are some homoscedasticity. Therefore, we can reject the null hypothesis of constant variances.\
+
+(c) **(2 pts)** Use a graphical method to check if the random errors follow a normal distribution. What do you conclude?\
+```{r echo=TRUE}
+qqnorm(model$residuals)
+qqline(model$residuals)
+```
+One way to check if the random errors follow a normal distribution is to create a normal Q-Q plot. If the points in a normal Q-Q plot lie on a straight line, it suggests that the data is normally distributed. From this graph, the point almost follow the straight line, so we can conclude that the residuals are normally distributed.\
+
+(d) **(3 pts)** Run a *Shapiro-Wilk* test to check if the random errors follow a normal distribution. What is the null hypothesis in this test? What is the p-value associated with the test? What is your conclusion?\
+```{r echo=TRUE}
+shapiro.test(residuals(model))
+```
+The null hypothesis is that the residuals are normally distributed. Through the data we get, the p-value is 0.1728 which is greater than 0.05. Thus, we fail to reject the null hypothesis. We can conclude that the residuals are normally distributed.\
+
+(e) **(3 pts)** Plot successive pairs of residuals. Do you find serial correlation among observations?\
+```{r echo=TRUE}
+plot(residuals(model)[-length(residuals)], residuals(model)[-1])
+abline(h = 0, col = 'red')
+```
+The plot shows that the scatter plot of successive pairs of residuals is uniformly distributed around zero, without any clear patterns or trends, it suggests that there is no significant serial correlation among the observations.\
+
+(f) **(3 pts)** Run a *Durbin-Watson* test to check if the random errors are uncorrelated. What is the null hypothesis in this test? What is the p-value associated with the test? What is your conclusion?\
+```{r}
+# Check for serial correlation using Durbin-Watson test
+library(lmtest)
+dwtest(rating ~ protein + fat + fiber + carbo + sugars + potass + vitamins + cups, 
+       data = new_cereal)
+```
+The null hypothesis of the test is that there is no serial correlation among the residuals (rho=0). Since the p-value (0.2041) is greater than the significance level (e.g., 0.05), we fail to reject the null hypothesis. Therefore, we can conclude that there is no significant evidence of serial correlation in the residuals of the multiple linear regression model.\
+
+(g) **(2 pts)** Compute the hat matrix $\boldsymbol H$ in this data set (you don’t need to show the entire matrix). Verify numerically that $\sum_{i=1}^nH_{ii}=p^*=p+1$.\
+```{r echo=TRUE}
+H <- hatvalues(model)
+sum(H)
+```
+The output of the sum(H) command gives the sum of the diagonal elements of H. Since $\sum_{i=1}^nH_{ii}$ gives the effective degrees of freedom (df) of the model, we expect this sum to equal the total number of regression coefficients, $p^* = p+1$, where $p$ is the number of predictor variables. In this case, since we have eight predictor variables in our model, we expect $p^*=9$. Therefore, to verify numerically that $\sum_{i=1}^nH_{ii}=p^*=p+1$, we simply run the R code above and verify that the output of sum(H) is 9.\
+
+(h) **(2 pts)** Check graphically if there is any high-leverage point. What is the criterion you used?\
+```{r echo=TRUE}
+h <- hatvalues(model)
+p <- length(model$coef)
+n <- nrow(new_cereal)
+threshold1 <- 2*p/n
+threshold2 <- 3*p/n
+
+plot(seq(n), h, xlab = 'Observation Index', ylab = 'Leverage')
+text(seq(n), h, labels = rownames(new_cereal))
+abline(h = threshold1, lty = 2, col = 'red')
+abline(h = threshold2, lty = 2, col = 'green')
+```
+From this graphwe find there exist high-leverage points, which is number 4, 2, 12, 68, 72. We can use a plot of the leverage values versus the observation index to check for high-leverage points. A commonly used criterion is to consider any observation with a leverage value greater than $2p/n$.We can visually inspect the plot and check if any observations have leverage values greater than the threshold.\
+
+(i) **(2 pts)** Compute the standardized residuals. Without drawing a plot, is there any outlier? What is the criterion you used?\
+```{r echo=TRUE}
+std_resid <- rstandard(model)
+outlier <- which(abs(std_resid) >= 3)
+outlier
+```
+
+We didn't find any outliers. In this code, we extract the standardized residuals from the model using the rstandard() function, which divides the residuals by their estimated standard deviation. We then identify outliers using the criterion that any observation with a standardized residual greater than 3 (in absolute value) may be considered an outlier.\
+
+(j) **(2 pts)** Calculate the Cook's distance. How many observations in this data set have a Cook's distance that is greater than $4/n$?\
+```{r echo=TRUE}
+cooksd <- cooks.distance(model) 
+
+n <- nrow(new_cereal)
+threshold <- 4/n
+n_influential <- sum(cooksd > threshold)
+n_influential
+```
+We can see that there is 7 observations in this data set have a Cook's distance that is greater than $4/n$.\
+
+(k) **(2 pts)** Check whether the response needs a Box-Cox transformation. If a Box-Cox transformation is necessary, what would be the form of the transformation?
+```{r}
+library(MASS)
+boxcox(model)
+```
+Since the confidence level contain the value $\lambda=1$, a Box-Cox transformation is not necessary. 

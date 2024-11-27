@@ -1,0 +1,136 @@
+---
+title: "Homework 4"
+author: 'Yanru Fang'
+output: pdf_document
+date: "March 17th 2023"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+1. This question uses the Auto dataset available in the ISLR package. The dataset under the name *Auto* is automatically available once the ISLR package is loaded.
+
+```{r dat, include=TRUE}
+library(ISLR)
+data(Auto)
+```
+```{r model, include=FALSE}
+Autod<- Auto
+Autod$cylinders<- as.factor(Autod$cylinders)
+Autod$year<- as.factor(Autod$year)
+Autod$origin<- as.factor(Autod$origin)
+lmod<- lm(mpg~. - name, Autod)
+```
+The dataset *Auto* contains the following information for $392$ vehicles:
+
+- mpg: miles per gallon
+- cylinders: number of cylinders (between 4 and 8)
+- displacement: engine displacement (cu.inches)
+- horsepower: engine horsepower
+- weight: vehicle weight (lbs)
+- acceleration: time to accelerate from 0 to 60 mph (seconds)
+- year: model year 
+- origin: origin of the vehicle (numerically coded as 1: American, 2: European, 3: Japanese)
+- name: vehicle name
+
+Our goal is to analyze several linear models where *mpg* is the response variable.\
+
+(a) **(2 pts)** In this data set, which predictors are qualitative, and which predictors are quantitative?
+```{r echo=TRUE}
+str(Auto)
+```
+The qualitative predictors are: cylinders, year and origin. The quantitative predictors are displacement, horsepower, weight and acceleration.\
+\
+
+(b) **(2 pts)** Fit a MLR model to the data, in order to predict mpg using all of the other predictors except for name. For each predictor in the fitted MLR model, comment on whether you can reject the null hypothesis
+that there is no linear association between that predictor and mpg, conditional on the other predictors in the model.
+```{r echo=TRUE}
+Autod <- Auto[, -9]
+Autod$cylinders<- as.factor(Autod$cylinders)
+Autod$year<- as.factor(Autod$year)
+Autod$origin<- as.factor(Autod$origin)
+lmod<- lm(mpg~. , Autod)
+summary(lmod)
+```
+According to the output, we can reject the null hypothesis of no linear association for cylinder, horsepower, weight, year and origin since the p-value is extremely small. This means that these predictors have a statistically significant linear association with mpg, conditional on the other predictors in the model. However, for the acceleration and displacement we cannot reject the null hypothesis that there is no linear association. \
+\
+
+(c) **(2 pts)** What mpg do you predict for a Japanese car with three cylinders, displacement 100, horsepower of 85, weight of 3000, acceleration of 20, built in the year 1980?
+```{r echo=TRUE}
+newdata <- data.frame(cylinders = '3', displacement = 100, horsepower = 85, weight = 3000, 
+                      acceleration = 20, year = '80', origin = '3')
+mpg_pred <- predict(lmod, newdata, interval = "prediction")
+mpg_pred
+```
+Based on the MLR model that we fitted earlier, the predicted mpg for this car is approximately 24.64804\
+\
+
+(d) **(2 pts)** On average, holding all other predictor variables fixed, what is the difference between the mpg of a Japanese car and the mpg of an European car?
+```{r}
+dif <- summary(lmod)$coefficients['origin3', 'Estimate'] - 
+      summary(lmod)$coefficients['origin2', 'Estimate']
+dif
+```
+
+To estimate the difference in mean mpg between Japanese and European cars, holding all other predictor variables fixed, we can use the coefficient differ. Which means that, on average, a Japanese car is predicted to have 0.5996415 more miles per gallon than an European car, when all other factors are held constant.\
+\
+
+(e) **(2 pts)** Fit a model to predict *mpg* using origin and horsepower, as well as an interaction between origin and horsepower. Present the summary output of the fitted model, and write out the fitted linear model.
+```{r echo=TRUE}
+lmod2 <- lm(mpg ~ origin + horsepower + origin:horsepower, data = Autod)
+summary(lmod2)
+```
+The fitted linear model is:
+
+$$
+mpg = 34.476496 + 10.997230_{originEurope} + 14.339718_{originJapan} - 0.121320_{horsepower}\\ - 0.100515_{originEurope*horsepower} - 0.108723_{originJapan*horsepower} + \epsilon
+$$
+
+(f) **(2 pts)** If we are fitting a polynomial regression with mpg as the response variable and weight as the predictor, what should be a proper degree of that polynomial?
+```{r echo=TRUE}
+model_2 <- lm(mpg ~ weight + I(weight^2), data = Autod)
+summary(model_2)
+```
+```{r echo=TRUE}
+model_3 <- lm(mpg ~ weight + I(weight^2) + I(weight^3), data = Autod)
+summary(model_3)
+```
+Through these two summary table, we can see that the p-value for the model with cubic term is larger than the model with quadratic term. And the p-value for the model with quadratic term is small enough. Therefore, we can conclude that a proper degree of that polynomial should be d=2. \
+\
+
+(g) **(4 pts)** Perform a backward selection, starting with the full model which includes all predictors (except for name). What is the best model based on the AIC criterion? What are the predictor variables in
+that best model?
+```{r echo=TRUE}
+backward_model <- step(lmod, direction = "backward")
+best_model <- step(backward_model, trace = 0)
+summary(best_model)
+AIC(best_model)
+```
+Through the table we can get the best model are: cylinder, displacement, horsepower, weight, year, and origin.
+
+2. Use the *fat* data set available from the *faraway* package. Use the percentage of body fat: *siri* as the response, and the other variables, except *bronzek* and *density* as potential predictors. Remove every tenth observation from the data for use as a test sample. Use the remaining data as a training sample, building the following models:
+(a) **(5 pts)** Linear regression with all the predictors.
+```{r echo=TRUE}
+library(faraway)
+library(glmnet)
+
+data(fat)
+test_indices <- seq(10, nrow(fat), by = 10)
+test_data <- fat[test_indices, ]
+train_data <- fat[-test_indices, ]
+
+lm_model <- lm(siri ~ ., data = train_data[,!names(train_data)%in% c("density", "brozek")])
+summary(lm_model)
+```
+
+(b) **(5 pts)** Ridge regression. 
+```{r echo=TRUE}
+x1 <- scale(data.matrix(fat[, !names(fat) %in% c("density", "siri", "brozek")]))
+x <- x1[-test_indices, ]
+y <- train_data$siri
+l <- glmnet(x, y, alpha = 0)
+ridge_model <- glmnet(x, y, alpha = 0, lambda = min(l$lambda))
+coef(ridge_model)
+```
+
